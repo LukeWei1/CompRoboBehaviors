@@ -171,15 +171,13 @@ class WallFollowNode(Node):
         r_frontR = msg.ranges[315:360]
         r_front = r_frontL+r_frontR
 
-        # track the straight-ahead beam separately for the corner/collision
-        # safety check, regardless of whether the wall triangulation succeeds
+        # safety check for front
         if min(r_front) == 0.0 or not math.isfinite(min(r_front)):
             self.front_dist = None
         else:
             self.front_dist = min(r_front)
 
-        # checking for 0.0 and non-finite (inf/nan) values ensures both
-        # readings are valid. 
+        # safety check for legs of triangle
         if (r_perp == 0.0 or r_fwd == 0.0
                 or r_perp is None or r_fwd is None
                 or not math.isfinite(r_perp) or not math.isfinite(r_fwd)):
