@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'driving_square'
+package_name = 'master_node'
 
 setup(
     name=package_name,
@@ -14,8 +14,8 @@ setup(
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='detch',
-    maintainer_email='dmateedunsatits@olin.edu',
-    description='It drives the robot in a square pattern.',
+    maintainer_email='dmateedunsatita@olin.edu',
+    description='Master controller that controls the other topics',
     license='MIT',
     extras_require={
         'test': [
@@ -24,7 +24,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'driving_square = driving_square.drive_square:main'
-        ]
+            'controller = master_node.controller:main',
+        ],
     },
 )

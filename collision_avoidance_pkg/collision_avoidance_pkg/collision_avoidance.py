@@ -1,11 +1,15 @@
 import math
+
+from geometry_msgs.msg import Twist
+from rcl_interfaces.msg import SetParametersResult
 import rclpy
 from rclpy.node import Node
-from sensor_msgs.msg import LaserScan
-from geometry_msgs.msg import Twist
 from rclpy.parameter import Parameter
-from rcl_interfaces.msg import SetParametersResult
 from rclpy.qos import qos_profile_sensor_data
+from sensor_msgs.msg import LaserScan
+from std_msgs.msg import String
+
+STATE = 'avoiding_collisions'
 
 
 class CollisionAvoidanceNode(Node):
@@ -16,25 +20,41 @@ class CollisionAvoidanceNode(Node):
         super().__init__('collision_avoidance')
 
         self.create_subscription(LaserScan, 'scan', self.process_scan,
-                                  qos_profile=qos_profile_sensor_data)
+                                 qos_profile=qos_profile_sensor_data)
         self.create_timer(0.1, self.run_loop)
 
         self.vel_pub = self.create_publisher(Twist, 'cmd_vel', 10)
 
         self.front_dist = None   # closest reading in the front cone (m)
         self.turn_away_sign = 1.0  # which way to turn when triggered;
-                                    # flip via param if you prefer a fixed
-                                    # escape direction
+        # flip via param if you prefer a fixed
+        # escape direction
 
         self.declare_parameters(namespace='', parameters=[
             ('safety_distance', 0.5),   # trigger threshold (m)
             ('safety_turn_rate', 1.0),  # rad/s while escaping
+            ('front_cone_deg', 45),     # half-width of the front cone (deg)
         ])
         self.safety_distance = self.get_parameter('safety_distance').value
         self.safety_turn_rate = self.get_parameter('safety_turn_rate').value
         self.front_cone_deg = self.get_parameter('front_cone_deg').value
 
         self.add_on_set_parameters_callback(self.parameter_callback)
+
+        self.active = False
+        self.create_subscription(String, 'neato_state', self.process_state, 10)
+        self.event_pub = self.create_publisher(String, 'fsm_event', 10)
+
+        print('Collision Avoidance!')
+
+    def process_state(self, msg):
+        was_active = self.active
+        self.active = (msg.data == STATE)
+        if was_active and not self.active:
+            twist_msg = Twist()
+            twist_msg.linear.x = 0.0
+            twist_msg.angular.z = 0.0
+            self.pub_vel.publish(twist_msg)
 
     def parameter_callback(self, params):
         for param in params:
@@ -48,7 +68,7 @@ class CollisionAvoidanceNode(Node):
 
         cone = int(self.front_cone_deg)
         r_frontL = list(msg.ranges[0:cone])
-        r_frontR = list(msg.ranges[360 - cone])
+        r_frontR = list(msg.ranges[360 - cone:])
         r_front = r_frontL + r_frontR
         # safety check for front
         valid_front = [r for r in r_front if r != 0.0 and math.isfinite(r)]
@@ -60,15 +80,20 @@ class CollisionAvoidanceNode(Node):
     def run_loop(self):
 
         obstacle_close = (self.front_dist is not None
-        and self.front_dist < self.safety_distance)
-  
+                          and self.front_dist < self.safety_distance)
+
+        # always report to the controller, even when not in control
+        self.event_pub.publish(String(data='close' if obstacle_close else 'good'))
+        if not self.active:
+            return
+
         msg = Twist()
         if obstacle_close:
             msg.angular.z = self.turn_away_sign * self.safety_turn_rate
             # proprtional control
             msg.linear.x = max(0.0, 0.1 * (self.front_dist / self.safety_distance))
         else:
-            #stop once cleared
+            # stop once cleared
             msg.linear.x = 0.0
             msg.angular.z = 0.0
 
