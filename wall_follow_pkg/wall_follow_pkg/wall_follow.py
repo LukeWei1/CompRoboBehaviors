@@ -35,7 +35,7 @@ class WallFollowNode(Node):
         self.declare_parameters(namespace='', parameters=[
             ('Kp_dist', 1.0),        # gain on distance error
             ('Kp_angle', 1.0),       # gain on heading/angle error
-            ('target_distance', 0.6),  # desired distance from the wall (m)
+            ('target_distance', 0.4),  # desired distance from the wall (m)
             ('forward_vel', 0.1),    # constant forward speed (m/s)
             ('side', 'right'),       # which side to follow
             ('theta_deg', 60.0),     # angle between the two beams [deg]
@@ -126,6 +126,8 @@ class WallFollowNode(Node):
             print("alpha", self.alpha)
             print("distance", self.dist)
             print("front distance", self.front_dist)
+            
+            #print("this is new code")
             angular_z = self.Kp_angle * self.alpha + self.Kp_dist * dist_error
 
             # steering sign convention: positive angular.z turns the robot
@@ -134,8 +136,9 @@ class WallFollowNode(Node):
             # (negative), so flip sign for right-side following.
             if self.side == 'right':
                 angular_z = -angular_z
-
+            print(f"dist_error={dist_error:+.3f}  angular_z={angular_z:+.3f}")
             msg.angular.z = angular_z
+
             #collision avoidance
         if self.front_dist is not None and self.front_dist < self.safety_distance:
             # turn away from the wall we're following, hard
@@ -172,7 +175,7 @@ class WallFollowNode(Node):
         r_front = r_frontL+r_frontR
         perp_idx, r_perp = self.find_valid_range(msg.ranges, self.perp_index)
         fwd_idx, r_fwd = self.find_valid_range(msg.ranges, self.fwd_index)
-
+        
         # track the straight-ahead beam separately for the corner/collision
         # safety check, regardless of whether the wall triangulation succeeds
         if min(r_front) == 0.0 or not math.isfinite(min(r_front)):
@@ -208,6 +211,8 @@ class WallFollowNode(Node):
 
         self.alpha = alpha
         self.dist = dist
+        print(f"perp_idx={perp_idx} r_perp={r_perp:.3f}  fwd_idx={fwd_idx} r_fwd={r_fwd:.3f}  "
+        f"actual_offset={actual_offset}  alpha={alpha:+.3f}")
 
 
 def main(args=None):
