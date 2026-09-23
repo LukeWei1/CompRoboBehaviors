@@ -29,6 +29,7 @@ class CollisionAvoidanceNode(Node):
         self.declare_parameters(namespace='', parameters=[
             ('safety_distance', 0.5),   # trigger threshold (m)
             ('safety_turn_rate', 1.0),  # rad/s while escaping
+            ('front_cone_deg', 45),     # half-width of the front cone (deg)
         ])
         self.safety_distance = self.get_parameter('safety_distance').value
         self.safety_turn_rate = self.get_parameter('safety_turn_rate').value
@@ -48,7 +49,7 @@ class CollisionAvoidanceNode(Node):
 
         cone = int(self.front_cone_deg)
         r_frontL = list(msg.ranges[0:cone])
-        r_frontR = list(msg.ranges[360 - cone])
+        r_frontR = list(msg.ranges[360 - cone:360])
         r_front = r_frontL + r_frontR
         # safety check for front
         valid_front = [r for r in r_front if r != 0.0 and math.isfinite(r)]
