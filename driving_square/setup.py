@@ -23,8 +23,8 @@ setup(
         ],
     },
     entry_points={
-        'console_scripts': [
-            'driving_square = driving_square.driving_square:main'
+    'console_scripts': [
+        'driving_square = driving_square.drive_square:main'
         ]
     },
 )
