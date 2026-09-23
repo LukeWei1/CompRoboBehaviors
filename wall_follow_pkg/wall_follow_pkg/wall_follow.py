@@ -39,7 +39,7 @@ class WallFollowNode(Node):
         self.declare_parameters(namespace='', parameters=[
             ('Kp_dist', 1.0),        # gain on distance error
             ('Kp_angle', 1.0),       # gain on heading/angle error
-            ('target_distance', 0.6),  # desired distance from the wall (m)
+            ('target_distance', 0.4),  # desired distance from the wall (m)
             ('forward_vel', 0.1),    # constant forward speed (m/s)
             ('side', 'right'),       # which side to follow
             ('theta_deg', 60.0),     # angle between the two beams [deg]
