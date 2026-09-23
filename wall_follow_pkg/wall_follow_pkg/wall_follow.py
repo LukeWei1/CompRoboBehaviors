@@ -35,7 +35,7 @@ class WallFollowNode(Node):
         self.declare_parameters(namespace='', parameters=[
             ('Kp_dist', 1.0),        # gain on distance error
             ('Kp_angle', 1.0),       # gain on heading/angle error
-            ('target_distance', 0.4),  # desired distance from the wall (m)
+            ('target_distance', 0.6),  # desired distance from the wall (m)
             ('forward_vel', 0.1),    # constant forward speed (m/s)
             ('side', 'right'),       # which side to follow
             ('theta_deg', 60.0),     # angle between the two beams [deg]
@@ -158,8 +158,8 @@ class WallFollowNode(Node):
                 idx = idx % n
                 r = ranges[idx]
                 if r != 0.0 and math.isfinite(r):
-                    return r
-        return None
+                    return idx,r
+        return None,None
     def process_scan(self, msg):
         #r_perp = msg.ranges[self.perp_index]
         #r_fwd = msg.ranges[self.fwd_index]
@@ -170,6 +170,8 @@ class WallFollowNode(Node):
         r_frontL = msg.ranges[0:45]
         r_frontR = msg.ranges[315:360]
         r_front = r_frontL+r_frontR
+        perp_idx, r_perp = self.find_valid_range(msg.ranges, self.perp_index)
+        fwd_idx, r_fwd = self.find_valid_range(msg.ranges, self.fwd_index)
 
         # track the straight-ahead beam separately for the corner/collision
         # safety check, regardless of whether the wall triangulation succeeds
@@ -186,8 +188,12 @@ class WallFollowNode(Node):
             self.alpha = None
             self.dist = None
             return
-
-        theta = math.radians(self.theta_deg)
+        n = len(msg.ranges)
+        actual_offset = (fwd_idx - perp_idx) % n
+        if actual_offset > n / 2:
+            actual_offset -= n  # take the shorter way around
+        theta = math.radians(abs(actual_offset))
+        #theta = math.radians(self.theta_deg)
 
         # triangulation: solve for the angle (alpha) between the robot's
         # heading and the wall, and the perpendicular distance to the wall
